@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from database import SessionLocal
 from models import Usuario
-from auth import encriptar_password, verificar_password, crear_token
+from auth import encriptar_password, verificar_password, crear_token, obtener_usuario_actual
 
 # podemos interpretarlo como una miniapi donde agrupamos endpoints
 router = APIRouter()
@@ -63,3 +63,34 @@ def login(usuario: UsuarioLogin, db: Session = Depends(get_db)):
     # crear y devolver el token JWT
     token = crear_token({"email": db_usuario.email})
     return {"access_token": token, "token_type": "bearer"}
+
+class CategoriaCrear(BaseModel):
+    nombre: str
+    tipo: str
+
+@router.post("/categorias")
+def crear_categorias(categoria: CategoriaCrear, db: Session = Depends(get_db),email: str = Depends(obtener_usuario_actual)):
+    #solo los logueados crearan categorias y el email viene del token JTW
+    from models import Categoria, TipoCategoria
+
+    #verificacion de que el tipo sea valido
+    if categoria.tipo not in ["ingreso", "gasto"]:
+        raise HTTPException(status_code=401, detail="el tipo debe ser de ingreso o gasto")
+    
+    #creamos la categoria
+    nueva_categoria = Categoria(
+        nombre = categoria.nombre,
+        tipo = TipoCategoria(categoria.tipo)
+    )
+    db.add(nueva_categoria)
+    db.commit()
+    db.refresh(nueva_categoria)
+
+    return {"id": nueva_categoria.id, "nombre": nueva_categoria.nombre, "tipo": nueva_categoria.tipo.value}
+
+@router.get("/categorias")
+def listar_categorias(db: Session = Depends(get_db), email: str = Depends(obtener_usuario_actual)):
+    #traemos de la base de datos las categorias
+    from models import Categoria
+    categorias = db.query(Categoria).all()
+    return [{"id": c.id, "nombre": c.nombre, "tipo": c.tipo.value} for c in categorias]
