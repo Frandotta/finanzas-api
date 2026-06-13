@@ -94,3 +94,41 @@ def listar_categorias(db: Session = Depends(get_db), email: str = Depends(obtene
     from models import Categoria
     categorias = db.query(Categoria).all()
     return [{"id": c.id, "nombre": c.nombre, "tipo": c.tipo.value} for c in categorias]
+
+#el esquema de la transaccion
+class TransaccionCrear(BaseModel):
+    monto: float
+    descripcion: str = None
+    fecha: str
+    categoria_id: int
+
+@router.post("/transacciones")
+def crear_transaccion(transaccion: TransaccionCrear, db = Depends(get_db), email: str = Depends(obtener_usuario_actual)):
+    from models import Transaccion, Usuario
+    from datetime import date
+
+    #buscamos el usuario por email para que nos de su ID
+    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+
+    #conversion de fecha a objeto
+    fecha_convertida = date.fromisoformat(transaccion.fecha)
+
+    #creacion de la transaccion
+    nueva_transaccion = Transaccion(
+        monto=transaccion.monto,
+        descripcion=transaccion.descripcion,
+        fecha=fecha_convertida,
+        usuario_id=usuario.id,
+        categoria_id=transaccion.categoria_id
+    )
+    db.add(nueva_transaccion)
+    db.commit()
+    db.refresh(nueva_transaccion)
+
+    return {
+        "id": nueva_transaccion.id,
+        "monto": nueva_transaccion.monto,
+        "descripcion": nueva_transaccion.descripcion,
+        "fecha": str(nueva_transaccion.fecha),
+        "categoria_id": nueva_transaccion.categoria_id
+    }
