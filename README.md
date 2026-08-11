@@ -97,6 +97,9 @@ Los endpoints protegidos requieren el header `Authorization: Bearer <token>`, ob
 - Tests automatizados con pytest
 - Deploy en Render con documentación pública en `/docs`
 
+**API en vivo:** https://finanzas-api-z2m8.onrender.com/docs
+*Nota: el servicio puede tardar unos 30-50 segundos en responder la primera vez si estuvo inactivo (free tier de Render).*
+
 
 Francisco Dottavio — Analista de Sistemas (UNNOBA)
 [LinkedIn](www.linkedin.com/in/franciscodottavio) · [GitHub](https://github.com/Frandotta)
