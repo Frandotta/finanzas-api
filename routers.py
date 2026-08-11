@@ -132,3 +132,41 @@ def crear_transaccion(transaccion: TransaccionCrear, db = Depends(get_db), email
         "fecha": str(nueva_transaccion.fecha),
         "categoria_id": nueva_transaccion.categoria_id
     }
+
+@router.get("/transacciones")
+def listar_transacciones(db: Session = Depends(get_db), email: str = Depends(obtener_usuario_actual)):
+    from models import Transaccion, Usuario
+    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+    transacciones = db.query(Transaccion).filter(Transaccion.usuario_id == usuario.id).all()
+    return[
+        {
+            "id": t.id,
+            "monto": t.monto,
+            "descripcion": t.descripcion,
+            "fecha": str(t.fecha),
+            "categoria_id": t.categoria_id
+        }
+        for t in transacciones
+    ]   
+
+@router.get("/reportes/resumen")
+def resumen(db: Session = Depends(get_db), email: str = Depends(obtener_usuario_actual)):
+    from models import Transaccion, Usuario, Categoria, TipoCategoria
+    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+
+    # Traemos todas las transacciones del usuario, con su categoría relacionada
+    transacciones = db.query(Transaccion).filter(Transaccion.usuario_id == usuario.id).all()
+    total_ingresos = 0
+    total_gastos = 0
+
+    for t in transacciones:
+        if t.categoria.tipo == TipoCategoria.ingreso:
+            total_ingresos += t.monto
+        else:
+            total_gastos += t.monto
+    balance = total_ingresos - total_gastos
+    return {
+        "total_ingresos": total_ingresos,
+        "total_gastos": total_gastos,
+        "balance": balance
+    }
